@@ -55,6 +55,10 @@ const createRubberbandWrapper = ({
         throw new Error("plane length exceeds max buffer size");
       }
 
+      if (plane.length !== sampleCount) {
+        throw new Error("all planes must have the same length");
+      }
+
       const channelDataPtr = channelDataPtrs[channelIndex];
       rubberbandApi.memWrite(channelDataPtr, plane);
     });
