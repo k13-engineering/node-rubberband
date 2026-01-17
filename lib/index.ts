@@ -98,7 +98,12 @@ const createRubberbandWrapper = ({
     let planes: Float32Array[] = [];
 
     channelDataPtrs.forEach((channelDataPtr) => {
-      const plane = rubberbandApi.memReadF32(channelDataPtr, samplesReceived);
+      // memReadF32 returns a view of the WASM memory, so we need to copy it out
+      const stolenPlane = rubberbandApi.memReadF32(channelDataPtr, samplesReceived);
+
+      const plane = new Float32Array(samplesReceived);
+      plane.set(stolenPlane);
+
       planes = [...planes, plane];
     });
 
