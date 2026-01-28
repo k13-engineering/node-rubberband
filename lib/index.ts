@@ -1,5 +1,6 @@
 import { RubberBandInterface } from "rubberband-wasm";
 import { loadRubberbandWasm } from "./rubberband.ts";
+import { optionsToBitmask, type TRubberbandOptions } from "./options.ts";
 
 type TRubberbandAudioData = {
   planes: Float32Array[];
@@ -10,17 +11,17 @@ const rubberbandWasm = await loadRubberbandWasm();
 const wasm = await WebAssembly.compile(rubberbandWasm);
 const rubberbandApi = await RubberBandInterface.initialize(wasm);
 
-const OptionProcessRealTime = 1;
-
 // eslint-disable-next-line max-statements
 const createRubberbandWrapper = ({
   sampleRate,
   channelCount,
-  maxBufferSizeInFrames
+  maxBufferSizeInFrames,
+  options
 }: {
   sampleRate: number;
   channelCount: number;
   maxBufferSizeInFrames: number;
+  options: Partial<TRubberbandOptions>;
 }) => {
 
   let ended = false;
@@ -33,7 +34,12 @@ const createRubberbandWrapper = ({
     rubberbandApi.memWritePtr(channelArrayPtr + channel * 4, bufferPtr);
   }
 
-  const rb = rubberbandApi.rubberband_new(sampleRate, channelCount, OptionProcessRealTime, 1, 1);
+  const optionsBitmask = optionsToBitmask({ options });
+  const rb = rubberbandApi.rubberband_new(sampleRate, channelCount, optionsBitmask, 1, 1);
+
+  if (rb === 0) {
+    throw Error("failed to create rubberband instance");
+  }
 
   const requestPitchScale = ({ pitchScale }: { pitchScale: number }) => {
     rubberbandApi.rubberband_set_pitch_scale(rb, pitchScale);
