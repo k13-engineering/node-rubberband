@@ -12,6 +12,7 @@ const rubberbandApi = await RubberBandInterface.initialize(wasm);
 
 const OptionProcessRealTime = 1;
 
+// eslint-disable-next-line max-statements
 const createRubberbandWrapper = ({
   sampleRate,
   channelCount,
@@ -21,6 +22,8 @@ const createRubberbandWrapper = ({
   channelCount: number;
   maxBufferSizeInFrames: number;
 }) => {
+
+  let ended = false;
 
   const channelArrayPtr = rubberbandApi.malloc(channelCount * 4);
   const channelDataPtrs: number[] = [];
@@ -45,6 +48,9 @@ const createRubberbandWrapper = ({
   };
 
   const process = ({ audioData }: { audioData: TRubberbandAudioData }) => {
+    if (ended) {
+      throw Error("already ended");
+    }
 
     const firstPlane = audioData.planes[0];
     const sampleCount = firstPlane.length;
@@ -64,6 +70,15 @@ const createRubberbandWrapper = ({
     });
 
     rubberbandApi.rubberband_process(rb, channelArrayPtr, sampleCount, 0);
+  };
+
+  const end = () => {
+    if (ended) {
+      throw Error("already ended");
+    }
+
+    ended = true;
+    rubberbandApi.rubberband_process(rb, channelArrayPtr, 0, 1);
   };
 
   const available = (): number => {
@@ -117,6 +132,7 @@ const createRubberbandWrapper = ({
     requestTimeRatio,
     samplesRequired,
     process,
+    end,
     available,
     latencyInSamples,
     retrieve
